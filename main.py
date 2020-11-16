@@ -7,8 +7,8 @@ class Player:
         self.path_finder = path_finder
     def path_find(self, board):
         return self.path_finder(board, self.current, self.goal)
-    def ai(self, board):
-        print('ai')
+    def is_winner(self):
+        return self.goal == self.current
 class Board:
     def __init__(self, size):
         self.G = nx.Graph()
@@ -46,5 +46,24 @@ class Game:
                 player.walls = size/len(self.players)
             else:
                 player.walls = (size+1)/len(self.players)
-            print(player.path_find(self.board.G))
-Game(4, 9)
+    def offensive_wall(self, objective):
+        print('offensive_wall')
+    def deffensive_wall(self, objective):
+        print('deffensive_wall')
+    def play(self):
+        winner_id = None
+        turn = 0
+        while 1:
+
+
+
+            if self.players[turn].is_winner():
+                winner_id = turn
+                break
+            turn = (turn + 1)%len(self.players)
+        print(f'The winner is the player {winner_id}')
+
+    def paranoid(self, board, player, deph):
+        print('maxn')
+game = Game(4, 9)
+game.maxn()
