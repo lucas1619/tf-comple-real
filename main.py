@@ -11,12 +11,18 @@ class Player:
         self.wall_strategy = wall_strategy
 
     def path_find(self, board):
-        return self.path_finder(board, self.current, self.goal)
+        try:
+            lista = self.path_finder(board, self.current, self.goal)
+            return lista
+        except:
+            return []
 
     def is_winner(self):
         return self.goal == self.current
+
     def has_walls(self):
         return self.walls > 0
+
     def move_pawn(self, board, is_real_move=False):
         if is_real_move:
             print(f'movio peon de {self.current} a ', end='')
@@ -38,8 +44,10 @@ class Board:
             for i in range(self.size ** 2):
                 if i % self.size != self.size - 1:
                     self.G.add_edge(i, i + 1)
+                    self.G.add_edge(i + 1, i)
                 if i + self.size < self.size * self.size:
                     self.G.add_edge(i, i + self.size)
+                    self.G.add_edge(i + self.size, i)
         else:
             self.G = G
 
@@ -47,7 +55,7 @@ class Board:
         new_one = Board(self.size, self.G)
         return new_one
 
-    def add_wall(self, a1, a2, b1, b2, players):
+    def add_wall(self, a1, b1, a2, b2, players):
         if ((self.size ** 2) > a1 >= 0) and ((self.size ** 2) > b1 >= 0) and ((self.size ** 2) > a2 >= 0) and (
                 (self.size ** 2) > b2 >= 0):  # valida bordes
             pass
@@ -108,46 +116,91 @@ class Game:
         elif validate == 1:
             return 3  # derecha a izquierda
 
-    def offensive_wall(self, objective_player, board, players):
-        it_could = True
-        for i in range(len(objective_player.path_find(board.G)) - 1):
-            indicator = self.validate_direction(objective_player.path_find(board.G)[i],
-                                                objective_player.path_find(board.G)[i + 1])
-            # 0 arriba, 1 abajo, 2 derecha, 3 izquierda
-            if indicator == 0:
-                if board.add_wall(objective_player.path_find(board.G)[i],
-                                  objective_player.path_find(board.G)[i] - self.board.size,
-                                  objective_player.path_find(board.G)[i] + 1,
-                                  objective_player.path_find(board.G)[i] - self.board.size + 1, players):
-                    break
-                else:
-                    continue
-            elif indicator == 1:
-                if board.add_wall(objective_player.path_find(board.G)[i],
-                                  objective_player.path_find(board.G)[i] + self.board.size,
-                                  objective_player.path_find(board.G)[i] + 1,
-                                  objective_player.path_find(board.G)[i] + self.board.size + 1, players):
-                    break
-                else:
-                    continue
-            elif indicator == 2:
-                if board.add_wall(objective_player.path_find(board.G)[i], objective_player.path_find(board.G)[i] + 1,
-                                  objective_player.path_find(board.G)[i] + self.board.size,
-                                  objective_player.path_find(board.G)[i] + self.board.size + 1, players):
-                    break
-                else:
-                    continue
-            elif indicator == 3:
-                if board.add_wall(objective_player.path_find(board.G)[i], objective_player.path_find(board.G)[i] - 1,
-                                  objective_player.path_find(board.G)[i] + self.board.size,
-                                  objective_player.path_find(board.G)[i] + self.board.size - 1, players):
-                    break
-                else:
-                    continue
-            if i == len(objective_player.path_find(board.G)) - 2:
-                # no se pudo poner pared
-                it_could = False
-        return it_could
+    def offensive_wall(self, objective_player, board, players, real_wall=False):
+        if real_wall == False:
+            it_could = True
+            for i in range(len(objective_player.path_find(board.G)) - 1):
+                indicator = self.validate_direction(objective_player.path_find(board.G)[i],
+                                                    objective_player.path_find(board.G)[i + 1])
+                # 0 arriba, 1 abajo, 2 derecha, 3 izquierda
+                if indicator == 0:
+                    if board.add_wall(objective_player.path_find(board.G)[i],
+                                      objective_player.path_find(board.G)[i] - self.board.size,
+                                      objective_player.path_find(board.G)[i] + 1,
+                                      objective_player.path_find(board.G)[i] - self.board.size + 1, players):
+                        break
+                    else:
+                        continue
+                elif indicator == 1:
+                    if board.add_wall(objective_player.path_find(board.G)[i],
+                                      objective_player.path_find(board.G)[i] + self.board.size,
+                                      objective_player.path_find(board.G)[i] + 1,
+                                      objective_player.path_find(board.G)[i] + self.board.size + 1, players):
+                        break
+                    else:
+                        continue
+                elif indicator == 2:
+                    if board.add_wall(objective_player.path_find(board.G)[i],
+                                      objective_player.path_find(board.G)[i] + 1,
+                                      objective_player.path_find(board.G)[i] + self.board.size,
+                                      objective_player.path_find(board.G)[i] + self.board.size + 1, players):
+                        break
+                    else:
+                        continue
+                elif indicator == 3:
+                    if board.add_wall(objective_player.path_find(board.G)[i],
+                                      objective_player.path_find(board.G)[i] - 1,
+                                      objective_player.path_find(board.G)[i] + self.board.size,
+                                      objective_player.path_find(board.G)[i] + self.board.size - 1, players):
+                        break
+                    else:
+                        continue
+                if i == len(objective_player.path_find(board.G)) - 2:
+                    # no se pudo poner pared
+                    it_could = False
+            return it_could
+        else:
+            it_could = True
+            for i in range(len(objective_player.path_find(board.G)) - 1):
+                indicator = self.validate_direction(objective_player.path_find(board.G)[i],
+                                                    objective_player.path_find(board.G)[i + 1])
+                # 0 arriba, 1 abajo, 2 derecha, 3 izquierda
+                if indicator == 0:
+                    if self.board.add_wall(objective_player.path_find(self.board.G)[i],
+                                           objective_player.path_find(self.board.G)[i] - self.board.size,
+                                           objective_player.path_find(self.board.G)[i] + 1,
+                                           objective_player.path_find(self.board.G)[i] - self.board.size + 1, players):
+                        break
+                    else:
+                        continue
+                elif indicator == 1:
+                    if self.board.add_wall(objective_player.path_find(self.board.G)[i],
+                                           objective_player.path_find(self.board.G)[i] + self.board.size,
+                                           objective_player.path_find(self.board.G)[i] + 1,
+                                           objective_player.path_find(self.board.G)[i] + self.board.size + 1, players):
+                        break
+                    else:
+                        continue
+                elif indicator == 2:
+                    if self.board.add_wall(objective_player.path_find(self.board.G)[i],
+                                           objective_player.path_find(self.board.G)[i] + 1,
+                                           objective_player.path_find(self.board.G)[i] + self.board.size,
+                                           objective_player.path_find(self.board.G)[i] + self.board.size + 1, players):
+                        break
+                    else:
+                        continue
+                elif indicator == 3:
+                    if self.board.add_wall(objective_player.path_find(self.board.G)[i],
+                                           objective_player.path_find(self.board.G)[i] - 1,
+                                           objective_player.path_find(self.board.G)[i] + self.board.size,
+                                           objective_player.path_find(self.board.G)[i] + self.board.size - 1, players):
+                        break
+                    else:
+                        continue
+                if i == len(objective_player.path_find(self.board.G)) - 2:
+                    # no se pudo poner pared
+                    it_could = False
+            return it_could
 
     def deffensive_wall(self, objective_player: Player, board):
         print('deffensive_wall')
@@ -227,7 +280,7 @@ class Game:
             for i, p in enumerate(players):
                 if i != player:
                     if players[player].wall_strategy == 1:
-                        self.offensive_wall(p, board, players)
+                        self.offensive_wall(p, board, players, True)
                         players[player].walls -= 1
                     score = self.paranoid(board.copy(), depth + 1, (player + 1) % len(players), players)
                     min_score = min(score, min_score)
