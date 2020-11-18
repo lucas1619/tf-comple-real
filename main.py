@@ -1,5 +1,6 @@
 import networkx as nx
-import math
+import pygame, sys
+from pygame.locals import *
 
 
 class Player:
@@ -52,7 +53,7 @@ class Board:
             self.G = G
 
     def copy(self):
-        new_one = Board(self.size, self.G)
+        new_one = Board(self.size, self.G.copy())
         return new_one
 
     def add_wall(self, a1, b1, a2, b2, players):
@@ -289,5 +290,53 @@ class Game:
             return min_score
 
 
-game = Game(2, 9)
-game.play()
+# game = Game(2, 9)
+# game.play()
+def get_coord(nodo, size, width_square):
+    x = nodo % size
+    y = nodo // size
+    x = x * width_square + 3 * x
+    y = y * width_square + 3 * y
+    return [x, y]
+
+
+size = 9
+board = Board(size)
+pygame.init()
+window = pygame.display.set_mode((400, 400))
+pygame.display.set_caption('Quoridor')
+finish = False
+clock = pygame.time.Clock()
+width_square = 400 // (size + 1)
+coords = []
+first_adjacency_list = dict(board.G.copy().adjacency())
+while not finish:
+    actual_adjacency_list = dict(board.G.adjacency())
+    for event in pygame.event.get():
+        if event.type == QUIT:
+            pygame.quit()
+            finish = True
+            break
+        if event.type == KEYDOWN:
+            if event.key == K_e:
+                print(list(actual_adjacency_list[2]))
+                # board.G.remove_edge(2, 3)
+            if event.key == K_r:
+                # print(actual_adjacency_list[2])
+                board.G.remove_edge(2, 3)
+    if finish:
+        break
+    window.fill((90, 50, 15))
+    for node in list(board.G):
+        coords = get_coord(node, size, width_square)
+        pygame.draw.rect(window, (255, 0, 0), [coords[0], coords[1], width_square, width_square], 0)
+        if first_adjacency_list[node] != actual_adjacency_list[node]:
+            for element in first_adjacency_list[node]:
+                if element not in actual_adjacency_list[node]:
+                    pygame.draw.rect(window, (255, 255, 0), [20, 20, width_square, width_square], 0)
+    coords = get_coord(4, size, width_square)
+    pygame.draw.ellipse(window, (0, 0, 255), [coords[0], coords[1], width_square, width_square], 0)
+    coords = get_coord(76, size, width_square)
+    pygame.draw.ellipse(window, (0, 255, 0), [coords[0], coords[1], width_square, width_square], 0)
+    pygame.display.flip()
+    clock.tick(60)
