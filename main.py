@@ -4,13 +4,13 @@ from pygame.locals import *
 
 
 class Player:
-    def __init__(self, path_finder, start, goal, wall_strategy):
+    def __init__(self, path_finder, start, goal, wall_strategy, color):
         self.current = start
         self.goal = goal
         self.walls = None
         self.path_finder = path_finder
         self.wall_strategy = wall_strategy
-
+        self.color = color
     def path_find(self, board):
         try:
             lista = self.path_finder(board, self.current, self.goal)
@@ -25,16 +25,10 @@ class Player:
         return self.walls > 0
 
     def move_pawn(self, board, is_real_move=False):
-        if is_real_move:
-            print(f'movio peon de {self.current} a ', end='')
         if len(self.path_find(board)) == 1:
             self.current = self.goal
         else:
             self.current = self.path_find(board)[1]
-        if is_real_move:
-            print(self.current)
-
-
 class Board:
     def __init__(self, size, G=None):
         self.size = size
@@ -83,14 +77,14 @@ class Game:
         key_pos1 = size // 2
         key_pos2 = (size // 2) * size
         if len(self.players) == 2:
-            self.players[0] = Player(nx.dijkstra_path, key_pos1, key_pos1 + (size * (size - 1)), 1)
-            self.players[1] = Player(nx.bellman_ford_path, key_pos1 + (size * (size - 1)), key_pos1, 1)
+            self.players[0] = Player(nx.dijkstra_path, key_pos1, key_pos1 + (size * (size - 1)), 1, (0, 0, 255))
+            self.players[1] = Player(nx.bellman_ford_path, key_pos1 + (size * (size - 1)), key_pos1, 1, (0, 255, 0))
         elif len(self.players) == 4:
-            self.players[0] = Player(nx.dijkstra_path, key_pos1, key_pos1 + (size * (size - 1)), 1)
-            self.players[1] = Player(nx.bellman_ford_path, key_pos1 + (size * (size - 1)), key_pos1, 1)
+            self.players[0] = Player(nx.dijkstra_path, key_pos1, key_pos1 + (size * (size - 1)), 1, (0, 0, 255))
+            self.players[1] = Player(nx.bellman_ford_path, key_pos1 + (size * (size - 1)), key_pos1, 1, (0, 255, 0))
 
-            self.players[2] = Player(nx.astar_path, key_pos2, key_pos2 + (size - 1), 1)
-            self.players[3] = Player(nx.dijkstra_path, key_pos2 + (size - 1), key_pos2, 1)
+            self.players[2] = Player(nx.astar_path, key_pos2, key_pos2 + (size - 1), 1, (0, 0, 0))
+            self.players[3] = Player(nx.dijkstra_path, key_pos2 + (size - 1), key_pos2, 1, (255,255,255))
         for player in self.players:
             if size % 2 == 0:
                 player.walls = size / len(self.players)
@@ -117,6 +111,12 @@ class Game:
         elif validate == 1:
             return 3  # derecha a izquierda
 
+    def get_coord(self, nodo, size, width_square):
+        x = nodo % size
+        y = nodo // size
+        x = x * width_square + 3 * x
+        y = y * width_square + 3 * y
+        return [x, y]
     def offensive_wall(self, objective_player, board, players, real_wall=False):
         if real_wall == False:
             it_could = True
@@ -211,7 +211,44 @@ class Game:
         turn = 0
         best_score = None
         score = None
+        """parte grafica aca"""
+        pygame.init()
+        window = pygame.display.set_mode((800, 800))
+        pygame.display.set_caption('Quoridor')
+        clock = pygame.time.Clock()
+        width_square = 800 // (self.board.size + 1)
+        coords = []
+        first_adjacency_list = dict(self.board.G.copy().adjacency())
+        """fin parte grafica aca"""
         while 1:
+            """parte grafica aca"""
+            actual_adjacency_list = dict(self.board.G.adjacency())
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit(1)
+            window.fill((90, 50, 15))
+            for node in list(self.board.G):
+                coords = self.get_coord(node, self.board.size, width_square)
+                pygame.draw.rect(window, (255, 0, 0), [coords[0], coords[1], width_square, width_square], 0)
+                if first_adjacency_list[node] != actual_adjacency_list[node]:
+                    for element in first_adjacency_list[node]:
+                        if element not in actual_adjacency_list[node]:
+                            direction = node - element
+                            if direction == -self.board.size:  # abajo
+                                pygame.draw.rect(window, (255, 255, 0),
+                                                 [coords[0], coords[1] + width_square, width_square, 3], 0)
+                            elif direction == self.board.size:  # arriba
+                                pygame.draw.rect(window, (255, 255, 0), [coords[0], coords[1] - 3, width_square, 3], 0)
+                            elif direction == -1:  # derecha
+                                pygame.draw.rect(window, (255, 255, 0),
+                                                 [coords[0] + width_square, coords[1], 3, width_square], 0)
+                            elif direction == 1:  # izquierda
+                                pygame.draw.rect(window, (255, 255, 0), [coords[0] - 3, coords[1], 3, width_square], 0)
+            for player in self.players:
+                coords = self.get_coord(player.current, self.board.size, width_square)
+                pygame.draw.ellipse(window, player.color, [coords[0], coords[1], width_square, width_square], 0)
+            """fin parte grafica aca"""
             max_score = float('-inf')
             before_current = self.players[turn].current
             before_board = self.board.copy()
@@ -234,17 +271,17 @@ class Game:
                         self.board = before_board
                         self.players[turn].walls += 1
             if movement['type'] == 'm':
-                print(f'jugador {turn + 1} movio peon')
                 self.players[turn].move_pawn(self.board.G, True)
             else:
                 if self.players[turn].wall_strategy == 1:
-                    print(f'jugador {turn + 1} puso muro ofensivo')
                     self.offensive_wall(self.players[movement['target']], self.board, self.players)
                 self.players[turn].walls -= 1
             if self.players[turn].is_winner():
                 winner_id = turn
                 break
             turn = (turn + 1) % len(self.players)
+            pygame.display.flip()
+            clock.tick(1)
         print(f'The winner is the player {winner_id + 1}')
 
     def paranoid(self, board, depth, player, players):
@@ -290,53 +327,5 @@ class Game:
             return min_score
 
 
-# game = Game(2, 9)
-# game.play()
-def get_coord(nodo, size, width_square):
-    x = nodo % size
-    y = nodo // size
-    x = x * width_square + 3 * x
-    y = y * width_square + 3 * y
-    return [x, y]
-
-
-size = 9
-board = Board(size)
-pygame.init()
-window = pygame.display.set_mode((400, 400))
-pygame.display.set_caption('Quoridor')
-finish = False
-clock = pygame.time.Clock()
-width_square = 400 // (size + 1)
-coords = []
-first_adjacency_list = dict(board.G.copy().adjacency())
-while not finish:
-    actual_adjacency_list = dict(board.G.adjacency())
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            pygame.quit()
-            finish = True
-            break
-        if event.type == KEYDOWN:
-            if event.key == K_e:
-                print(list(actual_adjacency_list[2]))
-                # board.G.remove_edge(2, 3)
-            if event.key == K_r:
-                # print(actual_adjacency_list[2])
-                board.G.remove_edge(2, 3)
-    if finish:
-        break
-    window.fill((90, 50, 15))
-    for node in list(board.G):
-        coords = get_coord(node, size, width_square)
-        pygame.draw.rect(window, (255, 0, 0), [coords[0], coords[1], width_square, width_square], 0)
-        if first_adjacency_list[node] != actual_adjacency_list[node]:
-            for element in first_adjacency_list[node]:
-                if element not in actual_adjacency_list[node]:
-                    pygame.draw.rect(window, (255, 255, 0), [20, 20, width_square, width_square], 0)
-    coords = get_coord(4, size, width_square)
-    pygame.draw.ellipse(window, (0, 0, 255), [coords[0], coords[1], width_square, width_square], 0)
-    coords = get_coord(76, size, width_square)
-    pygame.draw.ellipse(window, (0, 255, 0), [coords[0], coords[1], width_square, width_square], 0)
-    pygame.display.flip()
-    clock.tick(60)
+game = Game(2, 12)
+game.play()
