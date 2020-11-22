@@ -272,6 +272,10 @@ class Game:
                         self.players[turn].walls += 1
             if movement['type'] == 'm':
                 self.players[turn].move_pawn(self.board.G, True)
+                for i, p in enumerate(self.players):
+                    if i != turn:
+                        if p.current == self.players[turn].current:
+                            self.players[turn].move_pawn(self.board.G, True)
             else:
                 if self.players[turn].wall_strategy == 1:
                     self.offensive_wall(self.players[movement['target']], self.board, self.players)
@@ -326,6 +330,5 @@ class Game:
                     players[player].walls += 1
             return min_score
 
-
-game = Game(2, 12)
+game = Game(2, 9)
 game.play()
